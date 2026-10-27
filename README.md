@@ -1,137 +1,349 @@
-# Ledgerline Bank — Banking Management System
-
-Full-stack banking application:
-FastAPI REST APIs · MongoDB · Redis caching · rule-based fraud detection ·
-GenAI-powered transaction analysis · responsive HTML/CSS/JS frontend.
-
-## What's implemented
-
-- **Account management** — create customers/accounts, list, fetch, close (`app/routers/accounts.py`)
-- **Deposits, withdrawals, fund transfers, transaction processing** — with balance
-  validation and atomic-per-request updates (`app/routers/transactions.py`)
-- **Automated interest calculation** — simple interest credited as a Deposit
-  transaction, compounding on the next cycle (`app/services/interest_service.py`)
-- **Secure authentication** — JWT bearer tokens, bcrypt password hashing, role-based
-  route protection (`app/core/security.py`, `app/routers/auth.py`)
-- **Transaction validation & reliable state management** — active-account checks,
-  sufficient-funds checks, MongoDB unique indexes, incrementing counters for
-  account/txn IDs (`app/db/mongodb.py`)
-- **Redis caching** — account lookups are cached (`app/db/redis_client.py`) and
-  invalidated on every balance-changing operation; also powers the sliding-window
-  velocity counter used by fraud detection
-- **Rule-based fraud detection** — large-transaction, velocity, and duplicate-entry
-  rules (`app/services/fraud_detection.py`)
-- **GenAI-powered transaction analysis** — sends an account's recent transaction
-  history to Claude for a plain-English risk narrative, as a second opinion next
-  to the deterministic rules (`app/services/genai_service.py`,
-  `app/routers/analysis.py`)
-- **Responsive frontend** — `frontend/BankingSystem.html`: real-time balance
-  updates, transaction history with filtering, a deposit/withdrawal/transfer
-  chart, and a "GenAI Transaction Analysis" panel on the Fraud Alerts page that
-  calls the `/analysis/account` endpoint above
-
-## Project layout
-
+```{=html}
+<h1 align="center">
 ```
+Ledgerline Bank --- Banking Management System
+```{=html}
+</h1>
+```
+```{=html}
+<p align="center">
+```
+`<strong>`{=html}A full-stack banking application for account
+management, transactions, fraud alerts, and AI-assisted transaction
+analysis.`</strong>`{=html}
+```{=html}
+</p>
+```
+```{=html}
+<p align="center">
+```
+`<img src="https://img.shields.io/badge/Python-3-blue?logo=python" alt="Python">`{=html}
+`<img src="https://img.shields.io/badge/FastAPI-REST%20API-009688?logo=fastapi" alt="FastAPI">`{=html}
+`<img src="https://img.shields.io/badge/Database-MongoDB-47A248?logo=mongodb" alt="MongoDB">`{=html}
+`<img src="https://img.shields.io/badge/Cache-Redis-DC382D?logo=redis" alt="Redis">`{=html}
+`<img src="https://img.shields.io/badge/AI-Claude%20API-6B4FBB" alt="Claude API">`{=html}
+`<img src="https://img.shields.io/badge/Frontend-HTML%2FCSS%2FJS-E34F26" alt="HTML, CSS and JavaScript">`{=html}
+```{=html}
+</p>
+```
+Ledgerline Bank is a full-stack banking application built with
+**FastAPI, MongoDB, Redis, and a responsive HTML/CSS/JavaScript
+frontend**. It supports account management, deposits, withdrawals,
+transfers, interest calculations, rule-based fraud detection, and
+GenAI-powered transaction analysis.
+
+> **Demo and security notice:** This project is intended for learning
+> and demonstration. It is not a production banking platform and must
+> not be used to handle real money or sensitive customer data without a
+> comprehensive security review.
+
+## Tech Stack
+
+  Area                            Technologies
+  ------------------------------- --------------------------------------------
+  Backend                         Python, FastAPI
+  Database                        MongoDB
+  Caching and velocity counters   Redis
+  Data validation                 Pydantic
+  Authentication                  JWT bearer tokens, bcrypt password hashing
+  AI-assisted analysis            Anthropic Claude API
+  Frontend                        HTML, CSS, JavaScript
+  Containers                      Docker, Docker Compose
+  Testing                         pytest, mongomock-motor, fakeredis
+
+## Features
+
+  -----------------------------------------------------------------------
+  Area                                What it does
+  ----------------------------------- -----------------------------------
+  Account management                  Create customers and accounts, list
+                                      accounts, retrieve account details,
+                                      and close eligible accounts.
+
+  Deposits and withdrawals            Process transactions with
+                                      account-status and balance
+                                      validation.
+
+  Fund transfers                      Transfer funds between accounts
+                                      with source-fund checks and
+                                      transaction records.
+
+  Interest calculation                Calculate simple interest for
+                                      savings accounts and record
+                                      credited interest as a deposit
+                                      transaction.
+
+  Authentication and roles            Use JWT bearer tokens, bcrypt
+                                      password hashing, and role-based
+                                      route protection.
+
+  Transaction validation              Validate active accounts and
+                                      sufficient funds; use MongoDB
+                                      unique indexes and counters for
+                                      account and transaction IDs.
+
+  Redis caching                       Cache account lookups, invalidate
+                                      cache on balance changes, and
+                                      support sliding-window
+                                      transaction-velocity counters.
+
+  Fraud alerts                        Flag potentially risky activity
+                                      using large-transaction,
+                                      transaction-velocity, and
+                                      duplicate-entry rules.
+
+  GenAI transaction analysis          Send recent account transaction
+                                      history to Claude for a
+                                      plain-English risk narrative
+                                      alongside deterministic fraud
+                                      rules.
+
+  Transaction history                 View transaction records with
+                                      account/type/date/minimum-amount
+                                      filtering.
+
+  Responsive dashboard                Display balances, transaction
+                                      history, charts, fraud alerts, and
+                                      GenAI analysis through the
+                                      frontend.
+
+  API documentation                   Explore and test endpoints through
+                                      FastAPI's interactive `/docs`
+                                      interface.
+  -----------------------------------------------------------------------
+
+## Project Structure
+
+``` text
 banking-system/
 ├── app/
-│   ├── main.py                 FastAPI app, CORS, router wiring, startup/shutdown
+│   ├── main.py                 # FastAPI app, CORS, router wiring, startup/shutdown
 │   ├── core/
-│   │   ├── config.py           Settings (env-driven)
-│   │   └── security.py         Password hashing, JWT, auth dependencies
+│   │   ├── config.py           # Environment-driven settings
+│   │   └── security.py         # Password hashing, JWT, auth dependencies
 │   ├── db/
-│   │   ├── mongodb.py          Motor async client + indexes
-│   │   └── redis_client.py     Redis client + cache + rate-window helpers
-│   ├── models/schemas.py       Pydantic request/response models
+│   │   ├── mongodb.py          # MongoDB async client and indexes
+│   │   └── redis_client.py     # Redis client, cache, and rate-window helpers
+│   ├── models/
+│   │   └── schemas.py          # Pydantic request/response models
 │   ├── services/
-│   │   ├── fraud_detection.py  Rule-based fraud checks
-│   │   ├── interest_service.py Interest calculation
-│   │   └── genai_service.py    Anthropic API call for transaction analysis
+│   │   ├── fraud_detection.py  # Rule-based fraud checks
+│   │   ├── interest_service.py # Interest calculation
+│   │   └── genai_service.py    # Anthropic API integration
 │   └── routers/
-│       ├── auth.py, accounts.py, transactions.py, interest.py, fraud.py, analysis.py
+│       ├── auth.py
+│       ├── accounts.py
+│       ├── transactions.py
+│       ├── interest.py
+│       ├── fraud.py
+│       └── analysis.py
 ├── frontend/
-│   └── BankingSystem.html      Standalone responsive frontend
+│   └── BankingSystem.html      # Standalone responsive frontend
 ├── requirements.txt
 ├── Dockerfile
-├── docker-compose.yml          api + mongo + redis
+├── docker-compose.yml
 └── .env.example
 ```
 
-## Running it
+## Getting Started
 
-### 1. With Docker (recommended)
+### Option 1: Run with Docker (recommended)
 
-```bash
-cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY if you want GenAI analysis to work
-docker compose up --build
-```
+**Prerequisites:** Docker and Docker Compose.
 
-API is now at `http://localhost:8000` (interactive docs at `/docs`).
+1.  Clone the repository and open its directory.
 
-### 2. Locally
+2.  Create your local environment file:
 
-```bash
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env   # point MONGO_URI / REDIS_URL at your local instances
+    ``` bash
+    cp .env.example .env
+    ```
 
-uvicorn app.main:app --reload
-```
+    On Windows PowerShell, use:
 
-You'll need MongoDB and Redis running locally (e.g. `mongod` and `redis-server`,
-or `docker run -p 27017:27017 mongo:7` / `docker run -p 6379:6379 redis:7-alpine`).
+    ``` powershell
+    Copy-Item .env.example .env
+    ```
 
-### 3. Frontend
+3.  Edit `.env` and configure `ANTHROPIC_API_KEY` if you want GenAI
+    transaction analysis.
 
-Open `frontend/BankingSystem.html` in a browser. On the Dashboard, use the
-**Backend API** card: enter the API URL, then *Register & Log In* (first time) or
-*Log In*. Once connected, accounts, deposits, withdrawals, transfers, interest,
-fraud flags and history all run through the REST API and are stored in MongoDB.
-Without connecting, the page runs as a standalone demo on browser storage.
-The GenAI panel on the Fraud Alerts page uses the same connection.
+4.  Build and start the services:
 
-Note: interest runs need an Administrator or Branch Manager login.
+    ``` bash
+    docker compose up --build
+    ```
 
-### 4. Tests
+The API should be available at `http://localhost:8000`. Open
+`http://localhost:8000/docs` for interactive API documentation.
 
-```bash
-pip install -r requirements.txt
+### Option 2: Run the backend locally
+
+**Prerequisites:** Python, MongoDB, and Redis.
+
+1.  Create and activate a virtual environment.
+
+    **Windows PowerShell**
+
+    ``` powershell
+    python -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    ```
+
+    **macOS/Linux**
+
+    ``` bash
+    python -m venv .venv
+    source .venv/bin/activate
+    ```
+
+2.  Install dependencies:
+
+    ``` bash
+    pip install -r requirements.txt
+    ```
+
+3.  Copy the example environment file and update the database connection
+    settings.
+
+    **Windows PowerShell**
+
+    ``` powershell
+    Copy-Item .env.example .env
+    ```
+
+    **macOS/Linux**
+
+    ``` bash
+    cp .env.example .env
+    ```
+
+4.  Ensure MongoDB and Redis are running and configure `MONGO_URI` and
+    `REDIS_URL` in `.env`.
+
+5.  Start the API:
+
+    ``` bash
+    uvicorn app.main:app --reload
+    ```
+
+The API should be available at `http://localhost:8000`.
+
+### Option 3: Open the frontend
+
+Open `frontend/BankingSystem.html` in a browser.
+
+On the Dashboard, use the **Backend API** card to enter the API URL and
+register/log in. Once connected, account and transaction operations use
+the REST API and MongoDB. Without a backend connection, the page can run
+as a standalone demo using browser storage.
+
+The GenAI analysis panel is available from the Fraud Alerts page when
+the frontend is connected to the backend and the Anthropic API is
+configured.
+
+**Note:** Running interest cycles requires an Administrator or Branch
+Manager account.
+
+## Running Tests
+
+Install the project dependencies, then run:
+
+``` bash
 pytest
 ```
 
-The suite uses in-memory MongoDB (`mongomock-motor`) and Redis (`fakeredis`), so no
-services are needed. It covers auth, deposits/withdrawals/transfers, validation,
-history filters, cache invalidation, each fraud rule, interest, and role checks.
+The test suite is configured to use in-memory/mock implementations of
+MongoDB and Redis (`mongomock-motor` and `fakeredis`), so external
+database services should not be required for those tests.
 
-## API quick reference
+The documented test coverage includes authentication, deposits,
+withdrawals, transfers, validation, transaction-history filters, cache
+invalidation, fraud rules, interest calculations, and role checks.
 
-| Method | Path                     | Purpose                                   |
-|--------|--------------------------|--------------------------------------------|
-| POST   | `/auth/register`         | Create a staff user                        |
-| POST   | `/auth/login`            | OAuth2 password login → JWT                |
-| GET    | `/auth/me`               | Current user                               |
-| POST   | `/accounts`              | Open a new customer + account              |
-| GET    | `/accounts`              | List accounts                              |
-| GET    | `/accounts/{account_no}` | Get one account (Redis-cached)             |
-| POST   | `/accounts/{no}/close`   | Close a zero-balance account               |
-| POST   | `/transactions/deposit`  | Deposit                                    |
-| POST   | `/transactions/withdraw` | Withdrawal (checks sufficient funds)       |
-| POST   | `/transactions/transfer` | Transfer between two accounts              |
-| GET    | `/transactions`          | History, filterable by account/type/date/min amount |
-| POST   | `/interest/run`          | Run an interest cycle over savings accounts (admin/manager only) |
-| GET    | `/fraud/alerts`          | Transactions flagged by the rule engine    |
-| POST   | `/analysis/account`      | GenAI risk read on an account's recent activity |
+## API Quick Reference
 
-All routes except `/auth/register` and `/auth/login` require
-`Authorization: Bearer <token>`.
+  --------------------------------------------------------------------------
+  Method                  Endpoint                   Purpose
+  ----------------------- -------------------------- -----------------------
+  `POST`                  `/auth/register`           Register a staff user
 
-## Notes
+  `POST`                  `/auth/login`              Log in and obtain a JWT
 
-- The fraud rule-engine thresholds (`FRAUD_LARGE_TXN_AMOUNT`,
-  `FRAUD_VELOCITY_COUNT`, `FRAUD_VELOCITY_WINDOW_SECONDS`) are configurable via
-  `.env`.
-- `ANTHROPIC_MODEL` defaults to `claude-sonnet-4-5` — change it in `.env` to
-  whatever model you have access to.
-- CORS is wide open (`allow_origins=["*"]`) for local development; restrict it
-  before deploying.
+  `GET`                   `/auth/me`                 Retrieve the current
+                                                     user
+
+  `POST`                  `/accounts`                Create a customer and
+                                                     account
+
+  `GET`                   `/accounts`                List accounts
+
+  `GET`                   `/accounts/{account_no}`   Retrieve an account
+                                                     (Redis-cached)
+
+  `POST`                  `/accounts/{no}/close`     Close an eligible
+                                                     zero-balance account
+
+  `POST`                  `/transactions/deposit`    Deposit funds
+
+  `POST`                  `/transactions/withdraw`   Withdraw funds
+
+  `POST`                  `/transactions/transfer`   Transfer funds between
+                                                     accounts
+
+  `GET`                   `/transactions`            Retrieve transaction
+                                                     history with filters
+
+  `POST`                  `/interest/run`            Run an interest cycle
+                                                     (admin/manager only)
+
+  `GET`                   `/fraud/alerts`            Retrieve transactions
+                                                     flagged by fraud rules
+
+  `POST`                  `/analysis/account`        Generate an AI-assisted
+                                                     risk analysis for
+                                                     recent account activity
+  --------------------------------------------------------------------------
+
+All routes except `/auth/register` and `/auth/login` require an
+`Authorization: Bearer <token>` header.
+
+## Configuration
+
+Configure environment variables in `.env` based on `.env.example`.
+
+-   **Fraud detection:** `FRAUD_LARGE_TXN_AMOUNT`,
+    `FRAUD_VELOCITY_COUNT`, and `FRAUD_VELOCITY_WINDOW_SECONDS`
+    configure the rule thresholds.
+-   **GenAI analysis:** `ANTHROPIC_API_KEY` enables Claude-powered
+    transaction analysis.
+-   **Model selection:** `ANTHROPIC_MODEL` defaults to
+    `claude-sonnet-4-5`; change it to a model available to your account.
+-   **CORS:** The current configuration allows all origins for local
+    development. Restrict allowed origins before deploying anywhere
+    public.
+
+## Screenshots
+
+Add screenshots of the dashboard, account management, transaction
+history, and fraud alerts here to help visitors understand the
+application.
+
+``` markdown
+![Banking dashboard](docs/screenshots/dashboard.png)
+```
+
+Make sure the screenshot file exists at the referenced path before
+committing the image link.
+
+## Future Improvements
+
+-   Add deployment-specific configuration and restrict CORS origins.
+-   Add stronger production-grade audit logging and security monitoring.
+-   Expand automated tests for edge cases and failure recovery.
+-   Add deployment documentation and screenshots.
+
+## License
+
+No license is specified here. Add a `LICENSE` file if you intend to
+publish the project under a particular open-source license.
