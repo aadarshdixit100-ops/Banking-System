@@ -202,25 +202,93 @@ Configure environment variables in `.env` based on `.env.example`.
 - **Model selection:** `ANTHROPIC_MODEL` defaults to `claude-sonnet-4-5`; change it to a model available to your account.
 - **CORS:** The current configuration allows all origins for local development. Restrict allowed origins before deploying publicly.
 
-## Screenshots
+## Deploy the Frontend with GitHub Pages
 
-Add screenshots of the dashboard, account management, transaction history, and fraud alerts here.
+GitHub Pages can host the project's **static frontend**. It cannot run the FastAPI backend, MongoDB, or Redis. To use the complete application online, deploy the API and its database/cache services separately, then connect the GitHub Pages frontend to the public API URL.
 
-For example, save an image as `docs/screenshots/dashboard.png` and include it with standard Markdown:
+### 1. Enable GitHub Pages
 
-```markdown
-![Banking dashboard](docs/screenshots/dashboard.png)
+1. Push this repository to GitHub.
+2. Open the repository on GitHub and go to **Settings → Pages**.
+3. Under **Build and deployment → Source**, select **GitHub Actions**.
+4. Add the workflow below as `.github/workflows/deploy-pages.yml`.
+5. Commit and push the file to the `main` branch.
+6. Open the repository's **Actions** tab and wait for the Pages deployment workflow to complete.
+7. Your frontend will be available at `https://<YOUR_GITHUB_USERNAME>.github.io/<YOUR_REPOSITORY_NAME>/`.
+
+### 2. GitHub Actions workflow
+
+Create `.github/workflows/deploy-pages.yml` with:
+
+```yaml
+name: Deploy frontend to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload frontend artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 ```
 
-Ensure the image exists at the referenced path before committing the link.
+The workflow publishes the contents of `frontend/`, including `BankingSystem.html`. If you want the site to open at the root URL rather than `/BankingSystem.html`, rename the file to `frontend/index.html` and update your project references accordingly.
+
+### 3. Connect the frontend to your backend
+
+GitHub Pages only serves static files. Deploy the FastAPI application to a backend hosting provider that supports Python/Docker, and configure MongoDB and Redis as separately hosted services.
+
+After deployment:
+
+1. Open your GitHub Pages site.
+2. Find the **Backend API** card on the Dashboard.
+3. Enter your deployed API's HTTPS base URL (not the `/docs` URL).
+4. Register or log in and test account and transaction operations.
+
+The backend must allow requests from your GitHub Pages origin through its CORS configuration. Do not leave unrestricted CORS enabled for a public production deployment.
+
+### 4. Required backend configuration
+
+Use `.env.example` as the source of truth for this repository's environment variable names. Configure the required MongoDB, Redis, and authentication/JWT settings in your backend host's environment settings. Add `ANTHROPIC_API_KEY` only if you want Claude-powered transaction analysis.
+
+- Use production database URLs and strong, unique secrets.
+- Never commit `.env`, API keys, passwords, or JWT secrets to GitHub.
+- Do not use `localhost` database URLs in the deployed backend.
+- Ensure the hosted backend can reach MongoDB and Redis.
+- Configure `ANTHROPIC_MODEL` to a model available to your Anthropic account.
+
+> **Important:** A successful GitHub Pages deployment makes the frontend publicly accessible; it does not deploy or start the FastAPI backend or provision MongoDB/Redis.
 
 ## Future Improvements
 
-- Add deployment-specific configuration and restrict CORS origins.
 - Add stronger production-grade audit logging and security monitoring.
 - Expand automated tests for edge cases and failure recovery.
-- Add deployment documentation and screenshots.
-
-## License
-
-No license is specified yet. Add a `LICENSE` file if you intend to publish the project under a particular open-source license.
+- Add deployment-specific configuration and production security hardening.
